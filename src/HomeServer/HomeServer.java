@@ -69,7 +69,7 @@ public class HomeServer {
 			}else if(command.startsWith("scan")){
 				String[] chunks = command.split(" ");
 				int team = Integer.parseInt(chunks[1]);
-				g.ScanBoardForSequence(team, null);
+				g.ScanBoardForSequence(team);
 			}
 			else if(command.startsWith("card")){
 				b = Board.GetNew();

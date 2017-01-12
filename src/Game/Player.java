@@ -8,6 +8,7 @@ public class Player {
 	public String name;
 	public List<Integer> cards;
 
+    // add tcp connection
 	
 	
 	public boolean SendReliable() {
