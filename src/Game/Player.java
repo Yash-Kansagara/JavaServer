@@ -9,7 +9,7 @@ public class Player {
 	public List<Integer> cards;
 
     // add tcp connection
-	
+	// some huge changes done with this comment
 	
 	public boolean SendReliable() {
 
