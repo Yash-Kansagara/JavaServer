@@ -1,7 +1,6 @@
 package HomeServer;
 
-import java.security.GeneralSecurityException;
-import java.util.Iterator;
+
 import java.util.Scanner;
 
 import Game.Board;
@@ -24,7 +23,6 @@ public class HomeServer {
 			}
 			else if(command.equals("test")){
 				g = new Game();
-				g.InitializeGame();
 				b = g.board;
 //				int s = 0;
 //				int c = 0;

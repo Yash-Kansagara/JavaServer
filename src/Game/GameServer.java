@@ -1,41 +1,87 @@
 package Game;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.List;
 
-public class GameServer implements IGameServer{
-	
-	public List<Game> games;
-	public static Dictionary<String, Integer> cardDictionary;
-	
-	public void InitializeServer()
-	{
-		games = new ArrayList<Game>();
-	}
+public class GameServer implements IGameServer, Runnable {
 
-	@Override
-	public boolean createGame(String gameName) {
-		if(games.contains(gameName)) return false;
-		
-		return false;
-	}
+    public List<Game>                         games;
+    public Hashtable<String, Player>                      lobbyPlayers;
+    public static Dictionary<String, Integer> cardDictionary;
+    public ServerSocket                       gameServer;
 
-	@Override
-	public boolean removeGame(String gameName) {
-		// TODO Auto-generated method stub
-		if(games.contains(gameName)){
-			games.remove(gameName);
-			return true;
-		}
-		return false;
-	}
+    public void InitializeServer() throws Exception {
+        games = new ArrayList<Game>();
+        lobbyPlayers = new Hashtable<String, Player>();
+        gameServer = new ServerSocket(4545);
+    }
 
-	@Override
-	public boolean saveGame(String gameName) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
-	
+    @Override
+    public boolean createGame(String gameName) {
+        if (games.contains(gameName))
+            return false;
+
+        return false;
+    }
+
+    @Override
+    public boolean removeGame(String gameName) {
+        
+        if (games.contains(gameName)) {
+            games.get(games.indexOf(gameName)).OnDestroyGame();
+            games.remove(gameName);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean saveGame(String gameName) {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public boolean addPlayerToLobby(String name, Socket socket) {
+        if(lobbyPlayers.containsKey(name)){
+            Player p = lobbyPlayers.get(name);
+            p.tcp = socket;
+            System.out.println("Player Updated to Lobby : "+name);
+        }else{
+            Player p = new Player(name, socket);
+            lobbyPlayers.put(name, p);
+            System.out.println("Player Added to Lobby : "+name);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean removePlayerFromLobby(Socket s) {
+        // TODO Auto-generated  method stub
+        return false;
+    }
+
+    @Override
+    public void run() {
+        // TODO Auto-generated method stub
+        while (true) {
+            try {
+                Socket s = gameServer.accept();
+                s.setKeepAlive(true);
+                BufferedReader sr = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                String playerName = sr.readLine();
+                addPlayerToLobby(playerName, s);
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+
+    }
+
 }
