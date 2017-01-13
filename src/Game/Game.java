@@ -2,6 +2,8 @@ package Game;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.net.*;
 import java.io.*;
 
@@ -19,10 +21,20 @@ public class Game implements Runnable {
     public boolean gameRunning;
     public ServerSocket gameConnection;
     ArrayList<Player>   players;
+    public LinkedList<Event> EventQueue;
 
     public void InitializeGame() throws Exception {
         board = Board.GetNew();
+        EventQueue = new LinkedList<Event>();
         gameConnection = new ServerSocket(4545);
+        
+        while(gameRunning){
+            Event e = EventQueue.poll();
+            if(e != null){
+                e.Execute(null);
+            }
+            Thread.sleep(100);
+        }
     }
     
     public void OnDestroyGame(){
@@ -273,7 +285,6 @@ public class Game implements Runnable {
         }
         System.out.println("Best card to play: " + board.idToCard.get(topCard).name);
     }
-
     
     @Override
     public void run() {
