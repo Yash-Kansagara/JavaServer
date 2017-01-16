@@ -71,11 +71,24 @@ public class GameServer implements IGameServer {
             Player p = lobbyPlayers.get(name);
             p.tcp = socket;
             System.out.println("Player Updated to Lobby : "+name);
+            try {
+                p.SendReliable("success");
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }else{
             Player p = new Player(name, socket);
             lobbyPlayers.put(name, p);
             System.out.println("Player Added to Lobby : "+name);
+            try {
+                p.SendReliable("success");
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
+        
         return true;
     }
 
@@ -91,6 +104,7 @@ public class GameServer implements IGameServer {
         while (true) {
             try {
                 Socket s = gameServer.accept();
+                Debug.Log("Incoming connection");
                 s.setKeepAlive(true);
                 BufferedReader sr = new BufferedReader(new InputStreamReader(s.getInputStream()));
                 String playerName = sr.readLine();
