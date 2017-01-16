@@ -1,29 +1,40 @@
 package Game;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Writer;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 
+import HomeServer.HomeServerOperationCode;
+
 public class GameServer implements IGameServer {
 
     public List<Game>                         games;
-    public Hashtable<String, Player>                      lobbyPlayers;
+    public Hashtable<String, Player>          lobbyPlayers;
     public static Dictionary<String, Integer> cardDictionary;
     public ServerSocket                       gameServer;
-    public DatagramSocket gameServerUDP;
-    
-    
+    public DatagramSocket                     gameServerUDP;
+
+
     public void InitializeServer() throws Exception {
+        
         games = new ArrayList<Game>();
         lobbyPlayers = new Hashtable<String, Player>();
-        gameServer = new ServerSocket(4545);
-        gameServerUDP = new DatagramSocket(4546);
+        
+        gameServer = new ServerSocket(Config.Config.GAMESERVER_TCP_PORT);
+        gameServerUDP = new DatagramSocket(Config.Config.GAMESERVER_UDP_PORT);
+
         
         Thread TCPthread = new Thread(new Runnable() {
             @Override
@@ -31,13 +42,20 @@ public class GameServer implements IGameServer {
                 TCPServer();
             }
         });
-        
+
         Thread UDPthread = new Thread(new Runnable() {
             @Override
             public void run() {
                 UDPServer();
             }
         });
+        
+        // kick start both socket threads
+        TCPthread.start();
+        UDPthread.start();
+        
+        // register game server on homeServer
+        RegisterOnHomeServer();
         
     }
 
@@ -50,7 +68,7 @@ public class GameServer implements IGameServer {
 
     @Override
     public boolean removeGame(String gameName) {
-        
+
         if (games.contains(gameName)) {
             games.get(games.indexOf(gameName)).OnDestroyGame();
             games.remove(gameName);
@@ -67,20 +85,20 @@ public class GameServer implements IGameServer {
 
     @Override
     public boolean addPlayerToLobby(String name, Socket socket) {
-        if(lobbyPlayers.containsKey(name)){
+        if (lobbyPlayers.containsKey(name)) {
             Player p = lobbyPlayers.get(name);
             p.tcp = socket;
-            System.out.println("Player Updated to Lobby : "+name);
+            System.out.println("Player Updated to Lobby : " + name);
             try {
                 p.SendReliable("success");
             } catch (Exception e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-        }else{
+        } else {
             Player p = new Player(name, socket);
             lobbyPlayers.put(name, p);
-            System.out.println("Player Added to Lobby : "+name);
+            System.out.println("Player Added to Lobby : " + name);
             try {
                 p.SendReliable("success");
             } catch (Exception e) {
@@ -88,7 +106,7 @@ public class GameServer implements IGameServer {
                 e.printStackTrace();
             }
         }
-        
+
         return true;
     }
 
@@ -98,14 +116,15 @@ public class GameServer implements IGameServer {
         return false;
     }
 
-  
+
     public void TCPServer() {
         // TODO Auto-generated method stub
+        Debug.Log("TCP Server started...");
         while (true) {
             try {
                 Socket s = gameServer.accept();
                 Debug.Log("Incoming connection");
-                s.setKeepAlive(true);
+                //                s.setKeepAlive(true);
                 BufferedReader sr = new BufferedReader(new InputStreamReader(s.getInputStream()));
                 String playerName = sr.readLine();
                 addPlayerToLobby(playerName, s);
@@ -115,21 +134,48 @@ public class GameServer implements IGameServer {
             }
         }
     }
-    
-   
+
+
     public void UDPServer() {
         // TODO Auto-generated method stub
+        Debug.Log("UDP Server started...");
         while (true) {
             try {
-                Socket s = gameServer.accept();
-                s.setKeepAlive(true);
-                BufferedReader sr = new BufferedReader(new InputStreamReader(s.getInputStream()));
-                String playerName = sr.readLine();
-                addPlayerToLobby(playerName, s);
+                DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
+                gameServerUDP.receive(packet);
+                byte[] data = packet.getData();
+                int operation = data[0];
                 Thread.sleep(100);
             } catch (Exception e) {
                 System.out.println(e);
             }
+        }
+    }
+
+    @Override
+    public void RegisterOnHomeServer() {
+        try {
+            InetAddress homeAddress = InetAddress.getByName("127.0.0.1");
+           
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(1024);
+            // 1 byte operation
+            byte opr = HomeServerOperationCode.REGISTER_GAMESERVER;
+            bos.write(new byte[]{opr});
+            // x byte address
+            byte[] address = InetAddress.getByName("127.0.0.1").getAddress();
+            bos.write(address);
+            Debug.Log("Address size: "+address.length);
+            // rest is name
+            bos.write(new String("GameServerName").getBytes());
+
+            byte[] data = bos.toByteArray();
+            DatagramPacket dp = new DatagramPacket(data, data.length, homeAddress, Config.Config.HOMESERVER_UDP_PORT);
+            gameServerUDP.send(dp);
+           
+            
+        } catch (Exception e) {
+            Debug.Log("Error registering on server...");    
+            e.printStackTrace();
         }
     }
 

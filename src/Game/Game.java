@@ -19,14 +19,14 @@ public class Game implements Runnable, PlayerEventListener {
 
     public Board        board;
     public boolean gameRunning;
-    public ServerSocket gameConnection;
+//    public ServerSocket gameConnection;
     ArrayList<Player>   players;
 //    public LinkedList<Event> EventQueue;
 
     public void InitializeGame() throws Exception {
         board = Board.GetNew();
 //        EventQueue = new LinkedList<Event>();
-        gameConnection = new ServerSocket(4545);
+//        gameConnection = new ServerSocket(4542);
         
 //        while(gameRunning){
 //            Event e = EventQueue.poll();

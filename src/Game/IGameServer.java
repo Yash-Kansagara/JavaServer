@@ -13,4 +13,6 @@ public interface IGameServer {
 	public boolean addPlayerToLobby(String name, Socket s);
 	
 	public boolean removePlayerFromLobby(Socket s);
+	
+	public void RegisterOnHomeServer();
 }

@@ -39,6 +39,7 @@ public class Player {
 
     public boolean SendReliable(String message) throws Exception {
         tcp.getOutputStream().write(message.getBytes());
+        tcp.getOutputStream().flush();
         return true;
     }
 

@@ -2,9 +2,17 @@ package HomeServer;
 
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.InputStreamReader;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.SocketException;
 import java.net.URL;
+import java.net.Socket;
+import java.util.Hashtable;
 import java.util.Scanner;
 
 import Game.Board;
@@ -12,30 +20,158 @@ import Game.CardBox;
 import Game.Debug;
 import Game.Game;
 import Game.GameServer;
+import Game.Player;
+import Test.Tester;
 
 public class HomeServer {
 
+    public DatagramSocket            udpSocket;
+    public Hashtable<String, Player> lobbyPlayers;
+    public Thread UdpThread;
+
+    private void Initialize() {
+
+        try {
+            udpSocket = new DatagramSocket(Config.Config.HOMESERVER_UDP_PORT);
+            lobbyPlayers = new Hashtable<String, Player>();
+            UdpThread = new Thread(new Runnable(){
+                public void run(){
+                    UDPServer();
+                }
+            });
+            
+            
+            UdpThread.start();
+
+        } catch (Exception e) {
+            Debug.Log("Error Starting Home Server...");
+            e.printStackTrace();
+            udpSocket.close();
+        }
+
+    }
+
+    public static void PrintIP() {
+        try {
+            URL whatismyip = new URL("http://checkip.amazonaws.com");
+            BufferedReader in = new BufferedReader(new InputStreamReader(whatismyip.openStream()));
+
+            String ip = in.readLine(); //you get the IP as a String
+            System.out.println(ip);
+        } catch (Exception e) {
+            Debug.Log(e);
+        }
+    }
+
+
+    public boolean addPlayerToLobby(String name, Socket socket) {
+        if (lobbyPlayers.containsKey(name)) {
+            Player p = lobbyPlayers.get(name);
+            p.tcp = socket;
+            System.out.println("Player Updated to Home Lobby : " + name);
+            try {
+                p.SendReliable("success");
+            } catch (Exception e) {
+
+                e.printStackTrace();
+            }
+        } else {
+            Player p = new Player(name, socket);
+            lobbyPlayers.put(name, p);
+            System.out.println("Player Added to Home Lobby : " + name);
+            try {
+                p.SendReliable("success");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return true;
+    }
+
+    public void removePlayerFromLobby() {
+        //TODO
+    }
+
+    public String getGameServerToConnect() {
+        String address = null;
+        return address;
+    }
+
+    // listenes UDP radio channel, bajate raho
+    public void UDPServer() {
+        // TODO Auto-generated method stub
+        Debug.Log("UDP Server started...");
+        while (true) {
+            try {
+                DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
+                udpSocket.receive(packet);
+                byte[] data = packet.getData();
+                
+                ByteArrayInputStream reader = new ByteArrayInputStream(data);
+                int operation = reader.read();
+                
+                
+                
+                Thread.sleep(100);
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+    }
+
+    public void HandleOperation(byte operation, ByteArrayInputStream stream){
+        switch(operation){
+            case HomeServerOperationCode.REGISTER_GAMESERVER:
+                RegisterGameServer(stream);
+            break;
+        }
+    }
+    
+    
+    public void RegisterGameServer(ByteArrayInputStream stream){
+        try {
+        byte[] adderss = new byte[4];
+            stream.read(adderss);
+        InetAddress gameServerAddress = InetAddress.getByAddress(adderss);
+        byte[] name = new byte[stream.available()];
+        stream.read(name);
+        String sName = new String(name);
+        } catch (IOException e) {
+            Debug.Log("Error registering game server...");
+            e.printStackTrace();
+        }
+    }
+
+    //---------------------------------------------------------------------------------------------
+
     public static void main(String args[]) {
 
-        PrintIP();
+        HomeServer hs = new HomeServer();
+        hs.Initialize();
+
         Scanner scanner = new Scanner(System.in);
         Board b = null;
         Game g = null;
-        
-        try{
-            
-        GameServer gs = new GameServer();
-        gs.InitializeServer();
-        
-    }catch(Exception e){
-        Debug.Log(e);
-    }
+
+        try {
+
+            GameServer gs = new GameServer();
+            gs.InitializeServer();
+            Thread.sleep(2000);
+
+            new Tester().JoinPlayerTest();
+        } catch (Exception e) {
+            Debug.Log(e);
+        }
 
         while (true) {
 
             String command = scanner.nextLine();
             System.out.println("command= " + command);
             if (command.equals("exit")) {
+                scanner.close();
+                
                 break;
             } else if (command.equals("test")) {
                 g = new Game();
@@ -113,15 +249,4 @@ public class HomeServer {
         }
     }
 
-    public static void PrintIP() {
-        try{
-        URL whatismyip = new URL("http://checkip.amazonaws.com");
-        BufferedReader in = new BufferedReader(new InputStreamReader(whatismyip.openStream()));
-
-        String ip = in.readLine(); //you get the IP as a String
-        System.out.println(ip);
-        }catch(Exception e){
-            Debug.Log(e);
-        }
-    }
 }
