@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
 import java.io.Writer;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -156,23 +157,29 @@ public class GameServer implements IGameServer {
     public void RegisterOnHomeServer() {
         try {
             InetAddress homeAddress = InetAddress.getByName("127.0.0.1");
-           
-            ByteArrayOutputStream bos = new ByteArrayOutputStream(1024);
+           Hashtable<String, Object> table = new Hashtable<String, Object>();
+          
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            
             // 1 byte operation
             byte opr = HomeServerOperationCode.REGISTER_GAMESERVER;
-            bos.write(new byte[]{opr});
+            //bos.write(new byte[]{opr});
             // x byte address
             byte[] address = InetAddress.getByName("127.0.0.1").getAddress();
-            bos.write(address);
-            Debug.Log("Address size: "+address.length);
+             table.put("op", opr);
+             table.put("address", address);
+             table.put("uport", Config.Config.GAMESERVER_UDP_PORT);
+             table.put("tport", Config.Config.GAMESERVER_TCP_PORT);
+             table.put("name", "GameServer1");
+            // bos.write(address);
             // rest is name
-            bos.write(new String("GameServerName").getBytes());
-
+            //bos.write(new String("GameServerName").getBytes());
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(table);
             byte[] data = bos.toByteArray();
             DatagramPacket dp = new DatagramPacket(data, data.length, homeAddress, Config.Config.HOMESERVER_UDP_PORT);
             gameServerUDP.send(dp);
            
-            
         } catch (Exception e) {
             Debug.Log("Error registering on server...");    
             e.printStackTrace();
