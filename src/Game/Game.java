@@ -17,8 +17,13 @@ public class Game implements Runnable, PlayerEventListener {
         }
     }
 
-    public Board        board;
+    public Game(String name) {
+    	this.name = name;
+	}
+
+	public Board        board;
     public boolean gameRunning;
+    public String name;
 //    public ServerSocket gameConnection;
     ArrayList<Player>   players;
 //    public LinkedList<Event> EventQueue;
@@ -41,8 +46,8 @@ public class Game implements Runnable, PlayerEventListener {
         //TODO 
     }
 
-    public void AddPlayer() throws Exception {
-        throw new Exception("Not Implemented");
+    public void AddPlayer(String name, Socket s) {
+        
     }
 
     public void RemovePlayer() throws Exception {

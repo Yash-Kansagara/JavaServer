@@ -4,6 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -51,8 +53,7 @@ public class Tester {
     public void CreateGame(){
     	try {
 			
-    		ObjectOutputStream oos = new ObjectOutputStream(new ByteArrayOutputStream(1024));
-			Hashtable<Byte, Object> data = new Hashtable<>();
+    		Hashtable<Byte, Object> data = new Hashtable<>();
 			data.put(ParameterCodes.operationCode, GameServerOperationCode.CREATE_GAME);
 			data.put(ParameterCodes.gameName, "Game1");
 			data.put(ParameterCodes.name, "yash");
@@ -60,11 +61,28 @@ public class Tester {
 			data.put(ParameterCodes.udpPort, 5546);
 			data.put(ParameterCodes.address, InetAddress.getByName("localhost").getAddress());
 			
-			oos.writeObject(data);
+			DatagramSocket dgs = new DatagramSocket();
+			
+			SendUDP(data, dgs, InetAddress.getLocalHost(), Config.Config.HOMESERVER_UDP_PORT);
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }
+    
+    public void SendUDP(Hashtable<Byte, Object> data, DatagramSocket dgs, InetAddress address, int udp_port) {
+		ObjectOutputStream oos;
+		try {
+			ByteArrayOutputStream bos = new ByteArrayOutputStream(1024);
+			oos = new ObjectOutputStream(bos);
+			oos.writeObject(data);
+			byte[] bytes = bos.toByteArray();
+			dgs.send(new DatagramPacket(bytes, bytes.length, address, udp_port));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
 }

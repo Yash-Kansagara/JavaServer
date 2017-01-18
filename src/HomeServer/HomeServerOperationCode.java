@@ -6,5 +6,6 @@ public class HomeServerOperationCode {
     public static final byte JOIN_LOBBY = 1;
     public static final byte LEAVE_LOBBY = 2;
     public static final byte REGISTER_GAMESERVER = 3;
+	public static final byte CREATE_GAME = 4;
     
 }

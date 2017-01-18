@@ -19,23 +19,24 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 
+import Constants.Const;
 import HomeServer.HomeServerOperationCode;
 
 public class GameServer implements IGameServer {
 
     public List<Game>                         games;
-    public Hashtable<String, Player>          lobbyPlayers;
+    public Hashtable<String, Player>          gameServerPlayers;
     public static Dictionary<String, Integer> cardDictionary;
-    public ServerSocket                       gameServer;
+    public ServerSocket                       gameServerTCP;
     public DatagramSocket                     gameServerUDP;
 
 
     public void InitializeServer() throws Exception {
         
         games = new ArrayList<Game>();
-        lobbyPlayers = new Hashtable<String, Player>();
+        gameServerPlayers = new Hashtable<String, Player>();
         
-        gameServer = new ServerSocket(Config.Config.GAMESERVER_TCP_PORT);
+        gameServerTCP = new ServerSocket(Config.Config.GAMESERVER_TCP_PORT);
         gameServerUDP = new DatagramSocket(Config.Config.GAMESERVER_UDP_PORT);
 
         
@@ -88,19 +89,20 @@ public class GameServer implements IGameServer {
 
     @Override
     public boolean addPlayerToLobby(String name, Socket socket) {
-        if (lobbyPlayers.containsKey(name)) {
-            Player p = lobbyPlayers.get(name);
+        if (gameServerPlayers.containsKey(name)) {
+            Player p = gameServerPlayers.get(name);
             p.tcp = socket;
             System.out.println("Player Updated to Lobby : " + name);
             try {
                 p.SendReliable("success");
+                
             } catch (Exception e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         } else {
             Player p = new Player(name, socket);
-            lobbyPlayers.put(name, p);
+            gameServerPlayers.put(name, p);
             System.out.println("Player Added to Lobby : " + name);
             try {
                 p.SendReliable("success");
@@ -125,7 +127,8 @@ public class GameServer implements IGameServer {
         Debug.Log("TCP Server started...");
         while (true) {
             try {
-                Socket s = gameServer.accept();
+                Socket s = gameServerTCP.accept();
+                
                 Debug.Log("Incoming connection");
                 //                s.setKeepAlive(true);
                 BufferedReader sr = new BufferedReader(new InputStreamReader(s.getInputStream()));
@@ -165,9 +168,19 @@ public class GameServer implements IGameServer {
     	switch(operation){
     	case GameServerOperationCode.CREATE_GAME:
     		//TODO create game
+    		String name = (String)param.get(ParameterCodes.gameName);
+    		Game newGame = new Game(name);
+    		
     		//TODO notify homeserver about it
+    		SendAck(operation, Const.RESULT_OK);
     		break;
     	}
+    }
+    
+    public void SendAck(byte operation, byte result){
+    	Hashtable<Byte, Object> data = new Hashtable<>();
+    	data.put(ParameterCodes.operationCodeACK, operation);
+    	data.put(ParameterCodes.result, result);
     }
     
     @Override
