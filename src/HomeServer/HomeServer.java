@@ -148,11 +148,13 @@ public class HomeServer {
             if (gameServers.containsKey(name)) {
                 GameServerInstance gameServer = new GameServerInstance(name, uport, tport, gameServerAddress);
                 gameServers.put(name, gameServer);
-                Debug.Log("Updated Game Server : " + name);
+                Debug.Log("Updated Game Server");
+                Debug.Log(gameServer);
             } else {
                 GameServerInstance gameServer = new GameServerInstance(name, uport, tport, gameServerAddress);
                 gameServers.put(name, gameServer);
-                Debug.Log("Registered Game Server : " + name);
+                Debug.Log("Registered Game Server");
+                Debug.Log(gameServer);
             }
             
         } catch (IOException e) {

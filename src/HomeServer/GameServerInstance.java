@@ -16,4 +16,12 @@ public class GameServerInstance {
         this.tcp_port = tcpPort;
         this.address = address;
     }
+    
+    @Override
+    public String toString() {
+        // TODO Auto-generated method stub
+        StringBuilder sb = new StringBuilder();
+        sb.append("GameServer\n__________\nName:").append(name).append('\n').append("Address:").append(address).append('\n').append("UDP port:").append(udp_port).append('\n').append("TCP port:").append(tcp_port).append('\n');
+        return sb.toString();
+    }
 }
