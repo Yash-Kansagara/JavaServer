@@ -21,6 +21,7 @@ import Game.CardBox;
 import Game.Debug;
 import Game.Game;
 import Game.GameServer;
+import Game.ParameterCodes;
 import Game.Player;
 import Test.Tester;
 
@@ -114,9 +115,9 @@ public class HomeServer {
 
                 ByteArrayInputStream bis = new ByteArrayInputStream(data);
                 ObjectInputStream ois = new ObjectInputStream(bis);
-                Hashtable<String, Object> table = (Hashtable<String, Object>)ois.readObject();
+                Hashtable<Byte, Object> table = (Hashtable<Byte, Object>)ois.readObject();
 
-                byte operation = (byte)table.get("op");
+                byte operation = (byte)table.get(ParameterCodes.operationCode);
 
                 HandleOperation(operation, table);
 
@@ -127,7 +128,7 @@ public class HomeServer {
         }
     }
 
-    public void HandleOperation(byte operation, Hashtable<String, Object> table) {
+    public void HandleOperation(byte operation, Hashtable<Byte, Object> table) {
         switch (operation) {
             case HomeServerOperationCode.REGISTER_GAMESERVER:
                 RegisterGameServer(table);
@@ -136,13 +137,14 @@ public class HomeServer {
     }
 
 
-    public void RegisterGameServer(Hashtable<String, Object> table) {
+    public void RegisterGameServer(Hashtable<Byte, Object> table) {
         try {
 
-            byte[] adderss = (byte[])table.get("address");
-            int uport = (int)table.get("uport");
-            int tport = (int)table.get("tport");
-            String name = (String)table.get("name");
+            byte[] adderss = (byte[])table.get(ParameterCodes.address);
+            int uport = (int)table.get(ParameterCodes.udpPort);
+            int tport = (int)table.get(ParameterCodes.tcpPort);
+            String name = (String)table.get(ParameterCodes.name);
+            
             InetAddress gameServerAddress = InetAddress.getByAddress(adderss);
 
             if (gameServers.containsKey(name)) {

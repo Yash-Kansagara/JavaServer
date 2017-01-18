@@ -1,17 +1,18 @@
 package Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
+import java.io.ObjectOutputStream;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Hashtable;
 
 import Game.Debug;
+import Game.GameServerOperationCode;
+import Game.ParameterCodes;
 
 public class Tester {
     
@@ -45,8 +46,25 @@ public class Tester {
         } catch (IOException e) {
             e.printStackTrace();
         }
-      
-        
-        
+    }
+    
+    public void CreateGame(){
+    	try {
+			
+    		ObjectOutputStream oos = new ObjectOutputStream(new ByteArrayOutputStream(1024));
+			Hashtable<Byte, Object> data = new Hashtable<>();
+			data.put(ParameterCodes.operationCode, GameServerOperationCode.CREATE_GAME);
+			data.put(ParameterCodes.gameName, "Game1");
+			data.put(ParameterCodes.name, "yash");
+			data.put(ParameterCodes.tcpPort, 5545);
+			data.put(ParameterCodes.udpPort, 5546);
+			data.put(ParameterCodes.address, InetAddress.getByName("localhost").getAddress());
+			
+			oos.writeObject(data);
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 }

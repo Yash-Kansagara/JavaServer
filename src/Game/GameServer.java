@@ -1,9 +1,11 @@
 package Game;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Writer;
 import java.net.DatagramPacket;
@@ -145,7 +147,11 @@ public class GameServer implements IGameServer {
                 DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
                 gameServerUDP.receive(packet);
                 byte[] data = packet.getData();
-                int operation = data[0];
+                ByteArrayInputStream bis = new ByteArrayInputStream(data);
+                ObjectInputStream ois = new ObjectInputStream(bis);
+                Hashtable<Byte, Object> request = (Hashtable<Byte, Object>)ois.readObject();
+                byte operation = (byte)request.get(ParameterCodes.operationCode);
+                HandleOperation(operation, request);
                 Thread.sleep(100);
             } catch (Exception e) {
                 System.out.println(e);
@@ -153,11 +159,22 @@ public class GameServer implements IGameServer {
         }
     }
 
+    
+    public void HandleOperation(byte operation, Hashtable<Byte, Object> param){
+    	
+    	switch(operation){
+    	case GameServerOperationCode.CREATE_GAME:
+    		//TODO create game
+    		//TODO notify homeserver about it
+    		break;
+    	}
+    }
+    
     @Override
     public void RegisterOnHomeServer() {
         try {
             InetAddress homeAddress = InetAddress.getByName("127.0.0.1");
-           Hashtable<String, Object> table = new Hashtable<String, Object>();
+           Hashtable<Byte, Object> table = new Hashtable<Byte, Object>();
           
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             
@@ -166,11 +183,11 @@ public class GameServer implements IGameServer {
             //bos.write(new byte[]{opr});
             // x byte address
             byte[] address = InetAddress.getByName("127.0.0.1").getAddress();
-             table.put("op", opr);
-             table.put("address", address);
-             table.put("uport", Config.Config.GAMESERVER_UDP_PORT);
-             table.put("tport", Config.Config.GAMESERVER_TCP_PORT);
-             table.put("name", "GameServer1");
+             table.put(ParameterCodes.operationCode, opr);
+             table.put(ParameterCodes.address, address);
+             table.put(ParameterCodes.udpPort, Config.Config.GAMESERVER_UDP_PORT);
+             table.put(ParameterCodes.tcpPort, Config.Config.GAMESERVER_TCP_PORT);
+             table.put(ParameterCodes.name, "GameServer1");
             // bos.write(address);
             // rest is name
             //bos.write(new String("GameServerName").getBytes());
