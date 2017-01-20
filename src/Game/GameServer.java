@@ -1,46 +1,40 @@
 package Game;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Writer;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
-import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
-import java.util.List;
 
+import sun.security.provider.ParameterCache;
+import Config.Config;
 import Constants.Const;
 import HomeServer.HomeServerOperationCode;
 import Util.Container;
 
 public class GameServer implements IGameServer {
 
-    public List<Game>                         games;
+    public Hashtable<String, Game>            games;
     public Hashtable<String, Player>          gameServerPlayers;
     public static Dictionary<String, Integer> cardDictionary;
     public ServerSocket                       gameServerTCP;
     public DatagramSocket                     gameServerUDP;
-
+    InetAddress                               homeAddress;
+    InetAddress                               myAddress;
 
     public void InitializeServer() throws Exception {
 
-        games = new ArrayList<Game>();
+        games = new Hashtable<String, Game>();
         gameServerPlayers = new Hashtable<String, Player>();
 
-        gameServerTCP = new ServerSocket(Config.Config.GAMESERVER_TCP_PORT);
-        gameServerUDP = new DatagramSocket(Config.Config.GAMESERVER_UDP_PORT);
-
-
+        gameServerTCP = new ServerSocket(Config.GAMESERVER_TCP_PORT);
+        gameServerUDP = new DatagramSocket(Config.GAMESERVER_UDP_PORT);
+        homeAddress = InetAddress.getByName("127.0.0.1");
         Thread TCPthread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -74,8 +68,7 @@ public class GameServer implements IGameServer {
     @Override
     public boolean removeGame(String gameName) {
 
-        if (games.contains(gameName)) {
-            games.get(games.indexOf(gameName)).OnDestroyGame();
+        if (games.containsKey(gameName)) {
             games.remove(gameName);
             return true;
         }
@@ -124,14 +117,14 @@ public class GameServer implements IGameServer {
 
 
     public void TCPServer() {
-       
+
         Debug.Log("TCP Server started...");
         while (true) {
             try {
                 Socket s = gameServerTCP.accept();
 
                 Debug.Log("Incoming connection");
-                
+
                 BufferedReader sr = new BufferedReader(new InputStreamReader(s.getInputStream()));
                 String playerName = sr.readLine();
                 addPlayerToLobby(playerName, s);
@@ -167,36 +160,52 @@ public class GameServer implements IGameServer {
 
         switch (operation) {
             case GameServerOperationCode.CREATE_GAME:
-                //TODO create game
+
                 String name = (String)param.get(ParameterCodes.gameName);
                 Game newGame = new Game(name);
+                games.put(name, newGame);
 
-                //TODO notify homeserver about it
-                SendAck(operation, Const.RESULT_OK);
+               
+                Player p = new Player(name);
+                newGame.players.add(p);
+                Container c = new Container();
+                c.put(ParameterCodes.operationCodeACK, operation);
+                c.put(ParameterCodes.result, Const.RESULT_OK);
+                c.put(ParameterCodes.address, myAddress.getAddress());
+                c.put(ParameterCodes.udpPort, Config.HOMESERVER_UDP_PORT);
+                c.put(ParameterCodes.tcpPort, Config.HOMESERVER_TCP_PORT);
+                
+                //TODO Send to Player over UDP
                 break;
         }
     }
 
     public void SendAck(byte operation, byte result) {
-        Hashtable<Byte, Object> data = new Hashtable<>();
+        Container data = new Container();
         data.put(ParameterCodes.operationCodeACK, operation);
         data.put(ParameterCodes.result, result);
+        byte[] d = data.getBytes();
+        try {
+            gameServerUDP.send(new DatagramPacket(d, d.length, homeAddress, Config.HOMESERVER_UDP_PORT));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void RegisterOnHomeServer() {
         try {
-            InetAddress homeAddress = InetAddress.getByName("127.0.0.1");
+
             Container request = new Container();
             byte[] address = InetAddress.getByName("127.0.0.1").getAddress();
             request.put(ParameterCodes.operationCode, HomeServerOperationCode.REGISTER_GAMESERVER);
             request.put(ParameterCodes.address, address);
-            request.put(ParameterCodes.udpPort, Config.Config.GAMESERVER_UDP_PORT);
-            request.put(ParameterCodes.tcpPort, Config.Config.GAMESERVER_TCP_PORT);
+            request.put(ParameterCodes.udpPort, Config.GAMESERVER_UDP_PORT);
+            request.put(ParameterCodes.tcpPort, Config.GAMESERVER_TCP_PORT);
             request.put(ParameterCodes.name, "GameServer1");
             byte[] data = request.getBytes();
-            Debug.Log("Registering server takes "+ data.length + " bytes...");
-            DatagramPacket dp = new DatagramPacket(data, data.length, homeAddress, Config.Config.HOMESERVER_UDP_PORT);
+            Debug.Log("Registering server takes " + data.length + " bytes...");
+            DatagramPacket dp = new DatagramPacket(data, data.length, homeAddress, Config.HOMESERVER_UDP_PORT);
             gameServerUDP.send(dp);
 
         } catch (Exception e) {

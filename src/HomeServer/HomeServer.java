@@ -47,7 +47,6 @@ public class HomeServer {
 			});
 
 			UdpThread.start();
-
 		} catch (Exception e) {
 			Debug.Log("Error Starting Home Server...");
 			e.printStackTrace();
@@ -135,6 +134,8 @@ public class HomeServer {
 		}
 	}
 
+    
+    
 	public void CreateGame(Hashtable<Byte, Object> request) {
 		String name = (String)request.get(ParameterCodes.gameName);
 		if(gameRooms.containsKey(name)){
@@ -144,7 +145,12 @@ public class HomeServer {
 			GameServerInstance host = GetLeastLoadedGameServer();
 			Debug.Log("HomeServer -> "+host.name+ "| create game: "+name);
 			host.SendUDP(request, this.udpSocket);
+			
 		}
+	}
+	
+	public void OnCreateGameSuccess(int requestID){
+	    
 	}
 	
 	
