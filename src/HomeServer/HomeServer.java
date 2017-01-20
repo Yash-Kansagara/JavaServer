@@ -23,6 +23,7 @@ import Game.GameServer;
 import Game.ParameterCodes;
 import Game.Player;
 import Test.Tester;
+import Util.Container;
 
 public class HomeServer {
 
@@ -110,15 +111,12 @@ public class HomeServer {
 				DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
 				udpSocket.receive(packet);
 				byte[] data = packet.getData();
-
-				ByteArrayInputStream bis = new ByteArrayInputStream(data);
-				ObjectInputStream ois = new ObjectInputStream(bis);
-				Hashtable<Byte, Object> table = (Hashtable<Byte, Object>) ois.readObject();
-
-				byte operation = (byte) table.get(ParameterCodes.operationCode);
-
+				int length = packet.getLength();
+				Debug.Log("HomeServer: Received "+data.length + " bytes...");
+                Container request = Container.getFromBytes(data, length);
+				Hashtable<Byte, Object> table = request.table;
+				byte operation = (byte)table.get(ParameterCodes.operationCode);
 				HandleOperation(operation, table);
-
 				Thread.sleep(100);
 			} catch (Exception e) {
 				System.out.println(e);

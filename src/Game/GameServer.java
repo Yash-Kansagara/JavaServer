@@ -21,6 +21,7 @@ import java.util.List;
 
 import Constants.Const;
 import HomeServer.HomeServerOperationCode;
+import Util.Container;
 
 public class GameServer implements IGameServer {
 
@@ -32,14 +33,14 @@ public class GameServer implements IGameServer {
 
 
     public void InitializeServer() throws Exception {
-        
+
         games = new ArrayList<Game>();
         gameServerPlayers = new Hashtable<String, Player>();
-        
+
         gameServerTCP = new ServerSocket(Config.Config.GAMESERVER_TCP_PORT);
         gameServerUDP = new DatagramSocket(Config.Config.GAMESERVER_UDP_PORT);
 
-        
+
         Thread TCPthread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -53,14 +54,14 @@ public class GameServer implements IGameServer {
                 UDPServer();
             }
         });
-        
+
         // kick start both socket threads
         TCPthread.start();
         UDPthread.start();
-        
+
         // register game server on homeServer
         RegisterOnHomeServer();
-        
+
     }
 
     @Override
@@ -95,7 +96,7 @@ public class GameServer implements IGameServer {
             System.out.println("Player Updated to Lobby : " + name);
             try {
                 p.SendReliable("success");
-                
+
             } catch (Exception e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -123,14 +124,14 @@ public class GameServer implements IGameServer {
 
 
     public void TCPServer() {
-        // TODO Auto-generated method stub
+       
         Debug.Log("TCP Server started...");
         while (true) {
             try {
                 Socket s = gameServerTCP.accept();
-                
+
                 Debug.Log("Incoming connection");
-                //                s.setKeepAlive(true);
+                
                 BufferedReader sr = new BufferedReader(new InputStreamReader(s.getInputStream()));
                 String playerName = sr.readLine();
                 addPlayerToLobby(playerName, s);
@@ -150,9 +151,8 @@ public class GameServer implements IGameServer {
                 DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
                 gameServerUDP.receive(packet);
                 byte[] data = packet.getData();
-                ByteArrayInputStream bis = new ByteArrayInputStream(data);
-                ObjectInputStream ois = new ObjectInputStream(bis);
-                Hashtable<Byte, Object> request = (Hashtable<Byte, Object>)ois.readObject();
+                Container requestContainer = Container.getFromBytes(data, packet.getLength());
+                Hashtable<Byte, Object> request = requestContainer.table;
                 byte operation = (byte)request.get(ParameterCodes.operationCode);
                 HandleOperation(operation, request);
                 Thread.sleep(100);
@@ -162,56 +162,45 @@ public class GameServer implements IGameServer {
         }
     }
 
-    
-    public void HandleOperation(byte operation, Hashtable<Byte, Object> param){
-    	
-    	switch(operation){
-    	case GameServerOperationCode.CREATE_GAME:
-    		//TODO create game
-    		String name = (String)param.get(ParameterCodes.gameName);
-    		Game newGame = new Game(name);
-    		
-    		//TODO notify homeserver about it
-    		SendAck(operation, Const.RESULT_OK);
-    		break;
-    	}
+
+    public void HandleOperation(byte operation, Hashtable<Byte, Object> param) {
+
+        switch (operation) {
+            case GameServerOperationCode.CREATE_GAME:
+                //TODO create game
+                String name = (String)param.get(ParameterCodes.gameName);
+                Game newGame = new Game(name);
+
+                //TODO notify homeserver about it
+                SendAck(operation, Const.RESULT_OK);
+                break;
+        }
     }
-    
-    public void SendAck(byte operation, byte result){
-    	Hashtable<Byte, Object> data = new Hashtable<>();
-    	data.put(ParameterCodes.operationCodeACK, operation);
-    	data.put(ParameterCodes.result, result);
+
+    public void SendAck(byte operation, byte result) {
+        Hashtable<Byte, Object> data = new Hashtable<>();
+        data.put(ParameterCodes.operationCodeACK, operation);
+        data.put(ParameterCodes.result, result);
     }
-    
+
     @Override
     public void RegisterOnHomeServer() {
         try {
             InetAddress homeAddress = InetAddress.getByName("127.0.0.1");
-           Hashtable<Byte, Object> table = new Hashtable<Byte, Object>();
-          
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            
-            // 1 byte operation
-            byte opr = HomeServerOperationCode.REGISTER_GAMESERVER;
-            //bos.write(new byte[]{opr});
-            // x byte address
+            Container request = new Container();
             byte[] address = InetAddress.getByName("127.0.0.1").getAddress();
-             table.put(ParameterCodes.operationCode, opr);
-             table.put(ParameterCodes.address, address);
-             table.put(ParameterCodes.udpPort, Config.Config.GAMESERVER_UDP_PORT);
-             table.put(ParameterCodes.tcpPort, Config.Config.GAMESERVER_TCP_PORT);
-             table.put(ParameterCodes.name, "GameServer1");
-            // bos.write(address);
-            // rest is name
-            //bos.write(new String("GameServerName").getBytes());
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
-            oos.writeObject(table);
-            byte[] data = bos.toByteArray();
+            request.put(ParameterCodes.operationCode, HomeServerOperationCode.REGISTER_GAMESERVER);
+            request.put(ParameterCodes.address, address);
+            request.put(ParameterCodes.udpPort, Config.Config.GAMESERVER_UDP_PORT);
+            request.put(ParameterCodes.tcpPort, Config.Config.GAMESERVER_TCP_PORT);
+            request.put(ParameterCodes.name, "GameServer1");
+            byte[] data = request.getBytes();
+            Debug.Log("Registering server takes "+ data.length + " bytes...");
             DatagramPacket dp = new DatagramPacket(data, data.length, homeAddress, Config.Config.HOMESERVER_UDP_PORT);
             gameServerUDP.send(dp);
-           
+
         } catch (Exception e) {
-            Debug.Log("Error registering on server...");    
+            Debug.Log("Error registering on server...");
             e.printStackTrace();
         }
     }

@@ -1,14 +1,18 @@
 package Util;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Hashtable;
 
+import Game.Debug;
+
 public class Container {
-    Hashtable<Byte, Object> table;
-    ByteArrayOutputStream   bao;
-    DataOutputStream        dos;
+    public Hashtable<Byte, Object> table;
+    ByteArrayOutputStream          bao;
+    DataOutputStream               dos;
 
     public class TYPE_CODE {
         public static final byte STRING     = 0;
@@ -23,12 +27,54 @@ public class Container {
         bao = new ByteArrayOutputStream();
         dos = new DataOutputStream(bao);
     }
-    
-    public static Container getFromBytes(byte[] data){
-        return new Container();
+
+    public static Container getFromBytes(byte[] rawData, int len) {
+        Container c = new Container();
+        ByteArrayInputStream bis = new ByteArrayInputStream(rawData, 0,len);
+        DataInputStream dis = new DataInputStream(bis);
+        
+        try {
+            Debug.Log("total available data is " + dis.available());
+            while (dis.available() > 0) {
+                byte param = dis.readByte();
+                byte type = dis.readByte();
+                byte length = dis.readByte();
+                
+                switch (type) {
+                    case TYPE_CODE.BYTE:
+                        c.table.put(param, dis.readByte());
+                        break;
+                    case TYPE_CODE.INT:
+                        c.table.put(param, dis.readInt());
+                        break;
+                    case TYPE_CODE.FLOAT:
+                        c.table.put(param, dis.readFloat());
+                        break;
+                    case TYPE_CODE.STRING: {
+                        byte[] value = new byte[length];
+                        dis.read(value, 0, length);
+                        c.table.put(param, new String(value));
+                    }
+                        break;
+                    case TYPE_CODE.BYTE_ARRAY: {
+                        byte[] value = new byte[length];
+                        dis.read(value, 0, length);
+                        c.table.put(param, value);
+                    }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        return c;
     }
-    
-    public byte[] getBytes(){
+
+    public byte[] getBytes() {
         return bao.toByteArray();
     }
 
@@ -77,4 +123,6 @@ public class Container {
             e.printStackTrace();
         }
     }
+
+
 }
