@@ -8,16 +8,16 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import sun.security.provider.ParameterCache;
 import Config.Config;
 import Constants.Const;
 import HomeServer.HomeServerOperationCode;
 import Util.Container;
 
-public class GameServer implements IGameServer {
+public class GameServer extends GameServerEventListener implements IGameServer {
 
     public Hashtable<String, Game>            games;
     public Hashtable<String, Player>          gameServerPlayers;
@@ -35,6 +35,9 @@ public class GameServer implements IGameServer {
         gameServerTCP = new ServerSocket(Config.GAMESERVER_TCP_PORT);
         gameServerUDP = new DatagramSocket(Config.GAMESERVER_UDP_PORT);
         homeAddress = InetAddress.getByName("127.0.0.1");
+        eventListeners = new ArrayList<>();
+        AddGameServerEventListener(this);
+        
         Thread TCPthread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -146,8 +149,15 @@ public class GameServer implements IGameServer {
                 byte[] data = packet.getData();
                 Container requestContainer = Container.getFromBytes(data, packet.getLength());
                 Hashtable<Byte, Object> request = requestContainer.table;
+                
                 byte operation = (byte)request.get(ParameterCodes.operationCode);
                 HandleOperation(operation, request);
+                
+                Event e = new Event();
+                e.code = operation;
+                e.container = requestContainer;
+                RaiseEvent(e);
+                
                 Thread.sleep(100);
             } catch (Exception e) {
                 System.out.println(e);
@@ -160,37 +170,46 @@ public class GameServer implements IGameServer {
 
         switch (operation) {
             case GameServerOperationCode.CREATE_GAME:
+                try {
+                    String name = (String)param.get(ParameterCodes.gameName);
+                    Game newGame = new Game(name);
+                    games.put(name, newGame);
 
-                String name = (String)param.get(ParameterCodes.gameName);
-                Game newGame = new Game(name);
-                games.put(name, newGame);
+                    String playerName = (String)param.get(ParameterCodes.name);
+                    Player p = new Player(playerName);
+                    p.game = newGame;
+                    p.address = InetAddress.getByAddress((byte[])param.get(ParameterCodes.address));
+                    p.udpPort = (int)param.get(ParameterCodes.udpPort);
+                    p.tcpPort = (int)param.get(ParameterCodes.tcpPort);
+                    newGame.players.add(p);
 
-               
-                Player p = new Player(name);
-                newGame.players.add(p);
-                Container c = new Container();
-                c.put(ParameterCodes.operationCodeACK, operation);
-                c.put(ParameterCodes.result, Const.RESULT_OK);
-                c.put(ParameterCodes.address, myAddress.getAddress());
-                c.put(ParameterCodes.udpPort, Config.HOMESERVER_UDP_PORT);
-                c.put(ParameterCodes.tcpPort, Config.HOMESERVER_TCP_PORT);
-                
-                //TODO Send to Player over UDP
+                    Container c = new Container();
+                    c.put(ParameterCodes.operationCodeACK, operation);
+                    c.put(ParameterCodes.result, Const.RESULT_OK);
+                    byte[] data = c.getBytes();
+
+
+                    DatagramPacket dp = new DatagramPacket(data, data.length, homeAddress, Config.HOMESERVER_UDP_PORT);
+                    gameServerUDP.send(dp);
+
+                    c.put(ParameterCodes.address, myAddress.getAddress());
+                    c.put(ParameterCodes.udpPort, Config.GAMESERVER_UDP_PORT);
+                    c.put(ParameterCodes.tcpPort, Config.GAMESERVER_TCP_PORT);
+
+                    data = c.getBytes();
+
+                    dp = new DatagramPacket(data, data.length, p.address, p.udpPort);
+                    gameServerUDP.send(dp);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+
                 break;
         }
     }
 
-    public void SendAck(byte operation, byte result) {
-        Container data = new Container();
-        data.put(ParameterCodes.operationCodeACK, operation);
-        data.put(ParameterCodes.result, result);
-        byte[] d = data.getBytes();
-        try {
-            gameServerUDP.send(new DatagramPacket(d, d.length, homeAddress, Config.HOMESERVER_UDP_PORT));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     public void RegisterOnHomeServer() {
@@ -214,4 +233,29 @@ public class GameServer implements IGameServer {
         }
     }
 
+    public ArrayList<GameServerEventListener> eventListeners;
+
+    public void AddGameServerEventListener(GameServerEventListener listener) {
+        if (!eventListeners.contains(listener)) {
+            eventListeners.add(listener);
+        }
+    }
+
+    public void RaiseEvent(Event e) {
+        int size = eventListeners.size();
+        for (int i = 0; i < size; i++) {
+            eventListeners.get(i).messageReceivedUnreliable(e);
+        }
+    }
+
+
+
+//-------------------------------------- EVENT ZONE ------------------------------------------------------------------//
+
+
+    @Override
+    public void RegisteredOnHomeServer(Event e) {
+        // TODO Auto-generated method stub
+        Debug.Log("Registered on homeServer Event");
+    }
 }

@@ -8,7 +8,11 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.Hashtable;
 
-public class GameServerInstance {
+import Game.Debug;
+import Game.Event;
+import Game.GameServerEventListener;
+
+public class GameServerInstance{
 
 	public String name;
 	public int udp_port;
@@ -46,4 +50,6 @@ public class GameServerInstance {
 		}
 
 	}
+
+   
 }

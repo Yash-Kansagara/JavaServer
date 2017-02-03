@@ -14,6 +14,9 @@ public class Player {
     public Socket        tcp;
     public Thread        receivingThread;
     public Game          game;
+    public InetAddress   address;
+    public int udpPort;
+    public int tcpPort;
 
     // add tcp connection
     // some huge changes done with this comment

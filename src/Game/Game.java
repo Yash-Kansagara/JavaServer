@@ -7,7 +7,7 @@ import java.util.Queue;
 import java.net.*;
 import java.io.*;
 
-public class Game implements Runnable, PlayerEventListener {
+public class Game implements Runnable, EventListener {
 
     public Game() {
         try {
@@ -300,15 +300,15 @@ public class Game implements Runnable, PlayerEventListener {
     }
 
     @Override
-    public void messageReceived(PlayerEvent e) {
+    public void messageReceived(Event e) {
         // TODO Auto-generated method stub
-        Debug.Log(e.text);
+        Debug.Log(e);
     }
 
     @Override
-    public void messageReceivedUnreliable(PlayerEvent e) {
+    public void messageReceivedUnreliable(Event e) {
         // TODO Auto-generated method stub
-        Debug.Log(e.text);
+        Debug.Log(e);
     }
 
 }

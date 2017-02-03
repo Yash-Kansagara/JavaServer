@@ -15,6 +15,7 @@ import java.util.Hashtable;
 import Game.Debug;
 import Game.GameServerOperationCode;
 import Game.ParameterCodes;
+import Util.Container;
 
 public class Tester {
     
@@ -53,7 +54,7 @@ public class Tester {
     public void CreateGame(){
     	try {
 			
-    		Hashtable<Byte, Object> data = new Hashtable<>();
+    		Container data = new Container();
 			data.put(ParameterCodes.operationCode, GameServerOperationCode.CREATE_GAME);
 			data.put(ParameterCodes.gameName, "Game1");
 			data.put(ParameterCodes.name, "yash");
@@ -71,13 +72,10 @@ public class Tester {
 		}
     }
     
-    public void SendUDP(Hashtable<Byte, Object> data, DatagramSocket dgs, InetAddress address, int udp_port) {
-		ObjectOutputStream oos;
+    public void SendUDP(Container data, DatagramSocket dgs, InetAddress address, int udp_port) {
+		
 		try {
-			ByteArrayOutputStream bos = new ByteArrayOutputStream(1024);
-			oos = new ObjectOutputStream(bos);
-			oos.writeObject(data);
-			byte[] bytes = bos.toByteArray();
+			byte[] bytes = data.getBytes();
 			dgs.send(new DatagramPacket(bytes, bytes.length, address, udp_port));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

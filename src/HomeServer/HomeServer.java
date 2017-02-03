@@ -32,6 +32,7 @@ public class HomeServer {
 	public Thread UdpThread;
 	public Hashtable<String, GameServerInstance> gameServers;
 	public Hashtable<String, GameServerInstance> gameRooms;
+    
 
 	private void Initialize() {
 
@@ -140,6 +141,7 @@ public class HomeServer {
 		String name = (String)request.get(ParameterCodes.gameName);
 		if(gameRooms.containsKey(name)){
 			//TODO game exists
+			
 		}else{
 			//TODO create game on gameserver
 			GameServerInstance host = GetLeastLoadedGameServer();
@@ -171,15 +173,26 @@ public class HomeServer {
 			if (gameServers.containsKey(name)) {
 				GameServerInstance gameServer = new GameServerInstance(name, uport, tport, gameServerAddress);
 				gameServers.put(name, gameServer);
-				Debug.Log("Updated Game Server");
+				Debug.Log("HomeServer: Updated Game Server");
 				Debug.Log(gameServer);
 			} else {
 				GameServerInstance gameServer = new GameServerInstance(name, uport, tport, gameServerAddress);
 				gameServers.put(name, gameServer);
-				Debug.Log("Registered Game Server");
+				Debug.Log("HomeServer: Registered Game Server");
 				Debug.Log(gameServer);
 			}
-
+			
+			
+			// SEND ACK to game server
+			Container c = new Container();
+			c.put(ParameterCodes.operationCode, HomeServerOperationCode.ACK);
+			c.put(ParameterCodes.operationCodeACK, HomeServerOperationCode.REGISTER_GAMESERVER);
+			GameServerInstance gameServer = gameServers.get(name);
+			byte[] data = c.getBytes();
+			DatagramPacket dp = new DatagramPacket(data, data.length, gameServer.address, gameServer.udp_port);
+            udpSocket.send(dp);
+            
+            
 		} catch (IOException e) {
 			Debug.Log("Error registering game server...");
 			e.printStackTrace();
@@ -193,7 +206,7 @@ public class HomeServer {
 		HomeServer hs = new HomeServer();
 		hs.Initialize();
 
-		Scanner scanner = new Scanner(System.in);
+		
 		Board b = null;
 		Game g = null;
 
@@ -210,9 +223,12 @@ public class HomeServer {
 			Debug.Log(e);
 		}
 
-		while (true) {
+        
+        Scanner scanner = new Scanner(System.in);
+        boolean gate = false;
+		while (gate) {
 
-			String command = scanner.nextLine();
+			String command = scanner.next();
 			System.out.println("command= " + command);
 			if (command.equals("exit")) {
 				scanner.close();
