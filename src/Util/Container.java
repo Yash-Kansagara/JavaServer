@@ -34,8 +34,10 @@ public class Container {
         DataInputStream dis = new DataInputStream(bis);
         
         try {
-            Debug.Log("total available data is " + dis.available());
+            Debug.Log("total available data is " + dis.available() + " should = "+len);
             while (dis.available() > 0) {
+                
+                
                 byte param = dis.readByte();
                 byte type = dis.readByte();
                 byte length = dis.readByte();
@@ -43,6 +45,7 @@ public class Container {
                 switch (type) {
                     case TYPE_CODE.BYTE:
                         c.table.put(param, dis.readByte());
+                        
                         break;
                     case TYPE_CODE.INT:
                         c.table.put(param, dis.readInt());
@@ -65,6 +68,7 @@ public class Container {
                     default:
                         break;
                 }
+                Debug.Log(type+":"+param+":"+c.table.get(param));
             }
         } catch (Exception e) {
             e.printStackTrace();

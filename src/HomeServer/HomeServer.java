@@ -1,23 +1,23 @@
 package HomeServer;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketException;
 import java.net.URL;
-import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Scanner;
+import java.util.Set;
 
 import Game.Board;
 import Game.CardBox;
 import Game.Debug;
+import Game.Event;
+import Game.EventListener;
 import Game.Game;
 import Game.GameServer;
 import Game.ParameterCodes;
@@ -25,14 +25,14 @@ import Game.Player;
 import Test.Tester;
 import Util.Container;
 
-public class HomeServer {
+public class HomeServer extends HomeServerEventListener {
 
 	public DatagramSocket udpSocket;
 	public Hashtable<String, Player> lobbyPlayers;
 	public Thread UdpThread;
 	public Hashtable<String, GameServerInstance> gameServers;
 	public Hashtable<String, GameServerInstance> gameRooms;
-    
+    public ArrayList<EventListener> listeners;
 
 	private void Initialize() {
 
@@ -41,6 +41,7 @@ public class HomeServer {
 			lobbyPlayers = new Hashtable<String, Player>();
 			gameServers = new Hashtable<String, GameServerInstance>();
 			gameRooms = new Hashtable<>();
+			listeners = new ArrayList<>();
 			UdpThread = new Thread(new Runnable() {
 				public void run() {
 					UDPServer();
@@ -146,13 +147,15 @@ public class HomeServer {
 			//TODO create game on gameserver
 			GameServerInstance host = GetLeastLoadedGameServer();
 			Debug.Log("HomeServer -> "+host.name+ "| create game: "+name);
-			host.SendUDP(request, this.udpSocket);
+			Container c = new Container();
 			
+			Set<Byte> keys = request.keySet();
+			
+			for(Byte key: keys){
+			     c.put(key, request.get(key));
+    		}
+			host.SendUDP(c, this.udpSocket);
 		}
-	}
-	
-	public void OnCreateGameSuccess(int requestID){
-	    
 	}
 	
 	
@@ -218,7 +221,10 @@ public class HomeServer {
 			gs.InitializeServer();
 			Thread.sleep(2000);
 
-			new Tester().JoinPlayerTest();
+			Tester t = new Tester();
+			t.initialize();
+			t.CreateGame();
+			
 		} catch (Exception e) {
 			Debug.Log(e);
 		}
@@ -310,5 +316,37 @@ public class HomeServer {
 			}
 		}
 	}
+	
+	
+	
+	// ----------------------------------------- EVENT ZONE ----------------------------------------------
+	
+	
+	
+	public void AddHomeServerEvetListener(HomeServerEventListener listener)
+	{
+	    listeners.add(listener);
+	}
+	
+	public void RaiseEvent(Event e)
+	{
+	    int size = listeners.size();
+	    for(int i = 0; i < size; i++){
+	        listeners.get(i).messageReceivedUnreliable(e);
+	    }
+	}
 
+    @Override
+    public void OnRoomCreatedSuccess(Event e) {
+        String name = (String)e.container.table.get(ParameterCodes.gameName);
+        String ServerName = (String) e.container.table.get(ParameterCodes.name);
+        GameServerInstance server = gameServers.get(ServerName);
+        gameRooms.put(name, server);
+    }
+
+    @Override
+    public void OnRoomCreateFailed(Event roomName) {
+        Debug.Log("HomeSever: GameCreationFailed");
+    }
+                                
 }

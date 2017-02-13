@@ -1,10 +1,11 @@
 package Game;
 
 import java.net.Socket;
+import java.util.Hashtable;
 
 public interface IGameServer {
 	
-	public boolean createGame(String gameName);
+	public boolean createGame(Hashtable<Byte, Object> gameName, Byte operation) throws Exception;
 	
 	public boolean removeGame(String gameName);
 	

@@ -8,6 +8,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.Hashtable;
 
+import Util.Container;
 import Game.Debug;
 import Game.Event;
 import Game.GameServerEventListener;
@@ -36,13 +37,10 @@ public class GameServerInstance{
 		return sb.toString();
 	}
 
-	public void SendUDP(Hashtable<Byte, Object> data, DatagramSocket dgs) {
-		ObjectOutputStream oos;
+	public void SendUDP(Container data, DatagramSocket dgs) {
+		
 		try {
-			ByteArrayOutputStream bos = new ByteArrayOutputStream(1024);
-			oos = new ObjectOutputStream(bos);
-			oos.writeObject(data);
-			byte[] bytes = bos.toByteArray();
+			byte[] bytes = data.getBytes();
 			dgs.send(new DatagramPacket(bytes, bytes.length, address, udp_port));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

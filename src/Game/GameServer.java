@@ -37,7 +37,7 @@ public class GameServer extends GameServerEventListener implements IGameServer {
         homeAddress = InetAddress.getByName("127.0.0.1");
         eventListeners = new ArrayList<>();
         AddGameServerEventListener(this);
-        
+
         Thread TCPthread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -62,11 +62,61 @@ public class GameServer extends GameServerEventListener implements IGameServer {
     }
 
     @Override
-    public boolean createGame(String gameName) {
-        if (games.contains(gameName))
-            return false;
-        return false;
+    public boolean createGame(Hashtable<Byte, Object> param, Byte operation) throws Exception {
+
+        String name = (String)param.get(ParameterCodes.gameName);
+        boolean success = true;
+        if (games.contains(name)){
+            success = false;
+        }
+        Game newGame = new Game(name);
+        games.put(name, newGame);
+
+        String playerName = (String)param.get(ParameterCodes.name);
+        Player p = new Player(playerName);
+        p.game = newGame;
+        p.address = InetAddress.getByAddress((byte[])param.get(ParameterCodes.address));
+        p.udpPort = (int)param.get(ParameterCodes.udpPort);
+        p.tcpPort = (int)param.get(ParameterCodes.tcpPort);
+        newGame.players.add(p);
+
+        Container c = new Container();
+        c.put(ParameterCodes.operationCodeACK, operation);
+        c.put(ParameterCodes.result, success ? Const.RESULT_OK : Const.RESULT_FAIL);
+        c.put(ParameterCodes.name, "GameServer1");
+        c.put(ParameterCodes.gameName, name);
+        byte[] data = c.getBytes();
+
+
+        DatagramPacket dp = new DatagramPacket(data, data.length, homeAddress, Config.HOMESERVER_UDP_PORT);
+        gameServerUDP.send(dp);
+        Debug.Log("GameServer: ACK CREATE GAME -> HOMESERVER");
+
+        c.put(ParameterCodes.address, myAddress.getAddress());
+        c.put(ParameterCodes.udpPort, Config.GAMESERVER_UDP_PORT);
+        c.put(ParameterCodes.tcpPort, Config.GAMESERVER_TCP_PORT);
+
+        data = c.getBytes();
+
+        dp = new DatagramPacket(data, data.length, p.address, p.udpPort);
+        gameServerUDP.send(dp);
+Debug.Log("GameServer: ACK CREATE GAME -> PLAYER");
+
+        return success;
     }
+
+
+    public boolean JoinGame(Hashtable<Byte, Object> param){
+         String name = (String)param.get(ParameterCodes.gameName);
+        if (!games.contains(name)){
+            return false;
+        }
+        
+        //TODO join and respond
+        
+        return true;
+    }
+
 
     @Override
     public boolean removeGame(String gameName) {
@@ -144,20 +194,21 @@ public class GameServer extends GameServerEventListener implements IGameServer {
         Debug.Log("UDP Server started...");
         while (true) {
             try {
-                DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
+                byte[] data = new byte[1024];
+                DatagramPacket packet = new DatagramPacket(data, 1024);
                 gameServerUDP.receive(packet);
-                byte[] data = packet.getData();
+                //data = packet.getData();
                 Container requestContainer = Container.getFromBytes(data, packet.getLength());
                 Hashtable<Byte, Object> request = requestContainer.table;
-                
+
                 byte operation = (byte)request.get(ParameterCodes.operationCode);
                 HandleOperation(operation, request);
-                
+
                 Event e = new Event();
                 e.code = operation;
                 e.container = requestContainer;
                 RaiseEvent(e);
-                
+
                 Thread.sleep(100);
             } catch (Exception e) {
                 System.out.println(e);
@@ -171,42 +222,22 @@ public class GameServer extends GameServerEventListener implements IGameServer {
         switch (operation) {
             case GameServerOperationCode.CREATE_GAME:
                 try {
-                    String name = (String)param.get(ParameterCodes.gameName);
-                    Game newGame = new Game(name);
-                    games.put(name, newGame);
-
-                    String playerName = (String)param.get(ParameterCodes.name);
-                    Player p = new Player(playerName);
-                    p.game = newGame;
-                    p.address = InetAddress.getByAddress((byte[])param.get(ParameterCodes.address));
-                    p.udpPort = (int)param.get(ParameterCodes.udpPort);
-                    p.tcpPort = (int)param.get(ParameterCodes.tcpPort);
-                    newGame.players.add(p);
-
-                    Container c = new Container();
-                    c.put(ParameterCodes.operationCodeACK, operation);
-                    c.put(ParameterCodes.result, Const.RESULT_OK);
-                    byte[] data = c.getBytes();
-
-
-                    DatagramPacket dp = new DatagramPacket(data, data.length, homeAddress, Config.HOMESERVER_UDP_PORT);
-                    gameServerUDP.send(dp);
-
-                    c.put(ParameterCodes.address, myAddress.getAddress());
-                    c.put(ParameterCodes.udpPort, Config.GAMESERVER_UDP_PORT);
-                    c.put(ParameterCodes.tcpPort, Config.GAMESERVER_TCP_PORT);
-
-                    data = c.getBytes();
-
-                    dp = new DatagramPacket(data, data.length, p.address, p.udpPort);
-                    gameServerUDP.send(dp);
+              
+                    createGame(param, operation);
 
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-
-
                 break;
+            case GameServerOperationCode.JOIN_GAME:
+                try {
+                    //TODO join game
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                break;
+
         }
     }
 
@@ -249,8 +280,7 @@ public class GameServer extends GameServerEventListener implements IGameServer {
     }
 
 
-
-//-------------------------------------- EVENT ZONE ------------------------------------------------------------------//
+    //-------------------------------------- EVENT ZONE ------------------------------------------------------------------//
 
 
     @Override
