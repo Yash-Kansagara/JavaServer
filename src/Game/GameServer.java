@@ -67,10 +67,7 @@ public class GameServer extends GameServerEventListener implements IGameServer {
 
         String name = (String)param.get(ParameterCodes.gameName);
         
-        for(Byte key: param.keySet()){
-            Debug.Log("Key received: "+key);
-        }
-        
+       
         boolean success = true;
         if (games.contains(name)){
             success = false;
@@ -90,6 +87,7 @@ public class GameServer extends GameServerEventListener implements IGameServer {
         newGame.players.add(p);
 
         Container c = new Container();
+        c.put(ParameterCodes.operationCode, HomeServerOperationCode.ACK);
         c.put(ParameterCodes.operationCodeACK, operation);
         c.put(ParameterCodes.result, success ? Const.RESULT_OK : Const.RESULT_FAIL);
         c.put(ParameterCodes.name, "GameServer1");
@@ -104,7 +102,8 @@ public class GameServer extends GameServerEventListener implements IGameServer {
         c.put(ParameterCodes.address, myAddress.getAddress());
         c.put(ParameterCodes.udpPort, Config.GAMESERVER_UDP_PORT);
         c.put(ParameterCodes.tcpPort, Config.GAMESERVER_TCP_PORT);
-
+        
+        
         data = c.getBytes();
 
         dp = new DatagramPacket(data, data.length, p.address, p.udpPort);

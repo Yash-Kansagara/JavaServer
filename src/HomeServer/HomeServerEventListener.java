@@ -16,8 +16,8 @@ public abstract class HomeServerEventListener implements EventListener {
     public void messageReceivedUnreliable(Event e) {
         // TODO Auto-generated method stub
          Container c = e.container;
-        byte code = (byte)c.table.get(ParameterCodes.operationCode);
-        if(code == HomeServerOperationCode.ACK){
+        //byte code = (byte)c.table.get(ParameterCodes.operationCode);
+        if(e.code == HomeServerOperationCode.ACK){
             byte operation = (byte)c.table.get(ParameterCodes.operationCodeACK);
             if(operation == GameServerOperationCode.CREATE_GAME){
                 boolean success = Const.RESULT_OK == (byte)c.table.get(ParameterCodes.result);

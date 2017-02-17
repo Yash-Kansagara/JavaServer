@@ -52,9 +52,13 @@ public class Tester {
             Container requestContainer = Container.getFromBytes(d, packet.getLength());
             Hashtable<Byte, Object> request = requestContainer.table;
 
-            byte operation = (byte)request.get(ParameterCodes.operationCode);
 
-            PlayerRoomCreatedEvent(operation, request);
+            byte operation = (byte)request.get(ParameterCodes.operationCode);
+            
+            if(operation == HomeServerOperationCode.ACK){
+                byte ackOperationCode = (byte)request.get(ParameterCodes.operationCodeACK);
+                PlayerRoomCreatedEvent(operation, request);
+            }
 
         } catch (IOException e) {
             // TODO Auto-generated catch block
