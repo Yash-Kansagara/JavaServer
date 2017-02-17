@@ -13,12 +13,17 @@ public class Game implements Runnable, EventListener {
         try {
             InitializeGame();
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
     public Game(String name) {
     	this.name = name;
+    	try {
+            InitializeGame();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 	}
 
 	public Board        board;
@@ -30,6 +35,7 @@ public class Game implements Runnable, EventListener {
 
     public void InitializeGame() throws Exception {
         board = Board.GetNew();
+        players = new ArrayList<Player>();
 //        EventQueue = new LinkedList<Event>();
 //        gameConnection = new ServerSocket(4542);
         

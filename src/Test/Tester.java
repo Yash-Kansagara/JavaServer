@@ -43,11 +43,10 @@ public class Tester {
             SendUDP(data, udpSocket, InetAddress.getLocalHost(), Config.Config.HOMESERVER_UDP_PORT);
 
             //listen for reply from game server or homeserver
-
             Debug.Log("Tester: waiting for gameServer...");
+            
             DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
             udpSocket.receive(packet);
-            
             
             byte[] d = packet.getData();
             Container requestContainer = Container.getFromBytes(d, packet.getLength());

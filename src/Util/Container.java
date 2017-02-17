@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Hashtable;
+import java.util.Set;
 
 import Game.Debug;
 
@@ -30,22 +31,22 @@ public class Container {
 
     public static Container getFromBytes(byte[] rawData, int len) {
         Container c = new Container();
-        ByteArrayInputStream bis = new ByteArrayInputStream(rawData, 0,len);
+        ByteArrayInputStream bis = new ByteArrayInputStream(rawData, 0, len);
         DataInputStream dis = new DataInputStream(bis);
-        
+
         try {
-            Debug.Log("total available data is " + dis.available() + " should = "+len);
+            //Debug.Log("total available data is " + dis.available() + " should = " + len);
             while (dis.available() > 0) {
-                
-                
+
+
                 byte param = dis.readByte();
                 byte type = dis.readByte();
                 byte length = dis.readByte();
-                
+
                 switch (type) {
                     case TYPE_CODE.BYTE:
                         c.table.put(param, dis.readByte());
-                        
+
                         break;
                     case TYPE_CODE.INT:
                         c.table.put(param, dis.readInt());
@@ -68,7 +69,7 @@ public class Container {
                     default:
                         break;
                 }
-                Debug.Log(type+":"+param+":"+c.table.get(param));
+                //Debug.Log(type + ":" + param + ":" + c.table.get(param));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -128,5 +129,31 @@ public class Container {
         }
     }
 
+    public void UpdateStreamFromTable() {
+        Set<Byte> keys = table.keySet();
+        Debug.Log(keys.size() + " elements");
+        try {
+            for (Byte k : keys) {
+                
+                Object o = table.get(k);
+                if (byte.class.isInstance(o) || Byte.class.isInstance(o)) {
+                    dos.write(new byte[]{k, TYPE_CODE.BYTE, 1, (byte)o});
+                } else if (int.class.isInstance(o) || Integer.class.isInstance(o)) {
+                    dos.write(new byte[]{k, TYPE_CODE.INT, 4});
+                    dos.writeInt((int)o);
+                } else if (String.class.isInstance(o)) {
+                    byte[] data = ((String)o).getBytes();
+                    dos.write(new byte[]{k, TYPE_CODE.STRING, (byte)data.length});
+                    dos.write(data);
+                } else if (byte[].class.isInstance(o)) {
+                    byte[] data = (byte[])o;
+                    dos.write(new byte[]{k, TYPE_CODE.BYTE_ARRAY, (byte)data.length});
+                    dos.write(data);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
+    }
 }

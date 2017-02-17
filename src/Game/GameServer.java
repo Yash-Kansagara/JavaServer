@@ -35,6 +35,7 @@ public class GameServer extends GameServerEventListener implements IGameServer {
         gameServerTCP = new ServerSocket(Config.GAMESERVER_TCP_PORT);
         gameServerUDP = new DatagramSocket(Config.GAMESERVER_UDP_PORT);
         homeAddress = InetAddress.getByName("127.0.0.1");
+        myAddress = InetAddress.getByName("127.0.0.1");
         eventListeners = new ArrayList<>();
         AddGameServerEventListener(this);
 
@@ -65,10 +66,16 @@ public class GameServer extends GameServerEventListener implements IGameServer {
     public boolean createGame(Hashtable<Byte, Object> param, Byte operation) throws Exception {
 
         String name = (String)param.get(ParameterCodes.gameName);
+        
+        for(Byte key: param.keySet()){
+            Debug.Log("Key received: "+key);
+        }
+        
         boolean success = true;
         if (games.contains(name)){
             success = false;
         }
+        
         Game newGame = new Game(name);
         games.put(name, newGame);
 
@@ -76,8 +83,10 @@ public class GameServer extends GameServerEventListener implements IGameServer {
         Player p = new Player(playerName);
         p.game = newGame;
         p.address = InetAddress.getByAddress((byte[])param.get(ParameterCodes.address));
-        p.udpPort = (int)param.get(ParameterCodes.udpPort);
+        
         p.tcpPort = (int)param.get(ParameterCodes.tcpPort);
+        p.udpPort = (int)param.get(ParameterCodes.udpPort);
+        
         newGame.players.add(p);
 
         Container c = new Container();
@@ -87,10 +96,10 @@ public class GameServer extends GameServerEventListener implements IGameServer {
         c.put(ParameterCodes.gameName, name);
         byte[] data = c.getBytes();
 
-
+        
         DatagramPacket dp = new DatagramPacket(data, data.length, homeAddress, Config.HOMESERVER_UDP_PORT);
         gameServerUDP.send(dp);
-        Debug.Log("GameServer: ACK CREATE GAME -> HOMESERVER");
+        Debug.Log("GameServer: ACK CREATE GAME -> HOMESERVER "+data.length + " bytes");
 
         c.put(ParameterCodes.address, myAddress.getAddress());
         c.put(ParameterCodes.udpPort, Config.GAMESERVER_UDP_PORT);
@@ -183,7 +192,8 @@ Debug.Log("GameServer: ACK CREATE GAME -> PLAYER");
                 addPlayerToLobby(playerName, s);
                 Thread.sleep(100);
             } catch (Exception e) {
-                System.out.println(e);
+                //System.out.println(e);
+                e.printStackTrace();
             }
         }
     }
@@ -211,7 +221,7 @@ Debug.Log("GameServer: ACK CREATE GAME -> PLAYER");
 
                 Thread.sleep(100);
             } catch (Exception e) {
-                System.out.println(e);
+                e.printStackTrace();
             }
         }
     }

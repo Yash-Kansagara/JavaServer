@@ -20,6 +20,7 @@ import Game.Event;
 import Game.EventListener;
 import Game.Game;
 import Game.GameServer;
+import Game.GameServerOperationCode;
 import Game.ParameterCodes;
 import Game.Player;
 import Test.Tester;
@@ -113,11 +114,13 @@ public class HomeServer extends HomeServerEventListener {
 				udpSocket.receive(packet);
 				byte[] data = packet.getData();
 				int length = packet.getLength();
-				Debug.Log("HomeServer: Received "+data.length + " bytes...");
+				Debug.Log("HomeServer: Received "+ length + " bytes...");
                 Container request = Container.getFromBytes(data, length);
 				Hashtable<Byte, Object> table = request.table;
 				byte operation = (byte)table.get(ParameterCodes.operationCode);
+				
 				HandleOperation(operation, table);
+				
 				Thread.sleep(100);
 			} catch (Exception e) {
 				System.out.println(e);
@@ -144,16 +147,16 @@ public class HomeServer extends HomeServerEventListener {
 			//TODO game exists
 			
 		}else{
-			//TODO create game on gameserver
+			
 			GameServerInstance host = GetLeastLoadedGameServer();
 			Debug.Log("HomeServer -> "+host.name+ "| create game: "+name);
 			Container c = new Container();
 			
-			Set<Byte> keys = request.keySet();
 			
-			for(Byte key: keys){
-			     c.put(key, request.get(key));
-    		}
+			//TODO create container or propagate request
+			request.put( ParameterCodes.operationCode , GameServerOperationCode.CREATE_GAME);
+			c.table = request;
+			c.UpdateStreamFromTable();
 			host.SendUDP(c, this.udpSocket);
 		}
 	}
