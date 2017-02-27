@@ -131,7 +131,7 @@ public class Container {
 
     public void UpdateStreamFromTable() {
         Set<Byte> keys = table.keySet();
-        Debug.Log(keys.size() + " elements");
+        
         try {
             for (Byte k : keys) {
                 

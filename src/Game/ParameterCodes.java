@@ -8,4 +8,5 @@ public class ParameterCodes {
 	public static final byte address = 5;
 	public static final byte operationCodeACK = 6;
 	public static final byte result = 7;
+	public static final byte count = 8;
 }

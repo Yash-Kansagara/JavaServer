@@ -246,6 +246,14 @@ Debug.Log("GameServer: ACK CREATE GAME -> PLAYER");
                     e.printStackTrace();
                 }
                 break;
+                
+                case GameServerOperationCode.GET_PLAYERS:
+                 try {
+                    SendPlayers();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                break;
 
         }
     }
@@ -274,6 +282,20 @@ Debug.Log("GameServer: ACK CREATE GAME -> PLAYER");
     }
 
     public ArrayList<GameServerEventListener> eventListeners;
+    
+    public void SendPlayers(Hashtable<byte, Object> req)
+    {
+        Container c = new Container();
+        c.put(ParameterCodes.operationCode, GameServerOperationCode.ACK);
+        c.put(ParameterCodes.operationCodeACK, GameServerOperationCode.GET_PLAYERS);
+        Game game = games.get((String)req.get(ParameterCodes.gameName));
+        int players = game.players.size();
+        c.put(ParameterCodes.count, players);
+        for(int i = 0; i < players ; i++){
+            Player p = game.players.get(i);
+            //TODO send LIsts with containers
+        }
+    }
 
     public void AddGameServerEventListener(GameServerEventListener listener) {
         if (!eventListeners.contains(listener)) {
